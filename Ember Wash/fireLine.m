@@ -3,7 +3,7 @@ clear
 addpath src_ember_wash
 
 usePlot = true;
-saveVideo = true;
+saveVideo = false;
 
 if saveVideo
     v = VideoWriter('test_ember_wash','MPEG-4');
@@ -26,7 +26,8 @@ prams.s = prams.uwind/4;
 % dimensionless speed of the fire spread rate due only to wind
 
 % 2x uwind produces lateral spread effects strength of omega in Sharples
-% paper = 0.3 (scaling?)
+% paper = 0.3 (scaling?) 
+% prams.vortStrength = 0;
 prams.vortStrength = 0.5*prams.uwind/prams.dx^2; % strength of the vorticity
 %prams.vortStrength = -2*prams.s/prams.dx^2; % strength of the vorticity
 
@@ -107,6 +108,8 @@ velx(:,:,i) = cells.velx;
 vely(:,:,i) = cells.vely;
 i = i + 1;
 time = time + prams.dt;
+os.updateState(cells);
+
 
 while time < prams.T
   disp(time)
@@ -153,7 +156,7 @@ while time < prams.T
 
 %  figure(2);
 %  os.FormStreams(cells,xstart,ystart);
- figure(1)
+%  figure(1)
 %  pause
 
   % update the state of the cells and the amount of time they've been

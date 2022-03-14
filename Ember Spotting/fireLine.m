@@ -3,15 +3,14 @@ clear
 addpath src_ember_spotting
 
 usePlot = true;
+saveVideo = false;
 
-
-if usePlot
+if saveVideo
     v = VideoWriter('test_ember_spotting','MPEG-4');
     v.FrameRate = 2;
     open(v)
 end
 
-prams.tmean = 10;
 
 % velocity scale is 1m/s
 %prams.V = 1;
@@ -127,8 +126,10 @@ while time < prams.T
   % visualize the current state
   if usePlot
     cells.vis(time,1,streams,xstart,ystart);
-    frame = getframe(gcf);
-    writeVideo(v,frame);
+    if saveVideo
+        frame = getframe(gcf);
+        writeVideo(v,frame);
+    end
   end
 %  fprintf('time step %i! PAUSED\n',i)
   % update time
@@ -138,7 +139,7 @@ while time < prams.T
 
 %  figure(2);
 %  os.FormStreams(cells,xstart,ystart);
- figure(1)
+%  figure(1)
 %  pause
 
   % update the state of the cells and the amount of time they've been
@@ -200,7 +201,7 @@ set(gca,'fontsize',15)
 xlabel('meters','fontsize',16)
 ylabel('meters','fontsize',16)
 
-if usePlot
+if saveVideo
     frame = getframe(gcf);
     writeVideo(v,frame);
     close(v)

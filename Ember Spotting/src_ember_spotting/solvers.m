@@ -244,10 +244,10 @@ for k = 1:numel(FireIndx)
   indy = indy(2:end); % cells along bresenham line 
 
   % Add Ember spots
-  rdtime = normrnd(20,5,1)*binornd(1,0.01,1);
+  rddist = normrnd(20,5,1)*binornd(1,0.01,1);
   if rdtime ~= 0
     indx = [indx; idx];
-    indy = [indy; idy + round(rdtime)]; %ember spotting
+    indy = [indy; idy + round(rddist)]; %ember spotting
   end
 
 
