@@ -5,8 +5,11 @@ addpath src_ember_wash
 usePlot = true;
 saveVideo = true;
 
+filename = 'ember_wash_withVort_MoreStream';
+Vname = sprintf('test_%s',filename);
+
 if saveVideo
-    v = VideoWriter('test_ember_wash_withVort_NoEmber','MPEG-4');
+    v = VideoWriter(Vname,'MPEG-4');
     v.FrameRate = 2;
     open(v)
 end
@@ -90,8 +93,17 @@ os = solvers(prams);
 time = 0;
 
 streams = true;
-xstart = linspace(22,179,100);
-ystart = 22*ones(size(xstart));
+xstart1 = linspace(22,179,50);
+ystart1 = 22*ones(size(xstart1));
+
+ystart2 = linspace(22,179,20);
+xstart2 = 22*ones(size(ystart2));
+
+ystart3 = linspace(22,179,20);
+xstart3 = 179*ones(size(ystart3));
+
+xstart = [xstart1 xstart2 xstart3];
+ystart = [ystart1 ystart2 ystart3];
 
 %% first step
 i = 1;
@@ -170,10 +182,12 @@ velx(:,:,prams.ntime+1) = cells.velx;
 vely(:,:,prams.ntime+1) = cells.vely;
 
 % visualize the final state
-% if usePlot
-%   cells.vis(time,1,streams,xstart,ystart);
-% end
-% pause(.01)
+if usePlot
+  cells.vis(time,1,streams,xstart,ystart);
+  name = sprintf('%s_final_state',filename);
+  saveas(1,name,'png')
+end
+pause(.01)
 
 cells = geom(prams);
 for k = 1:prams.ntime+1
@@ -184,7 +198,7 @@ for k = 1:prams.ntime+1
  cells.vis(time);
  pause(0.01)
 end
-%save('fireline.mat','prams','state','velx','vely');
+
 
 fat = cells.fat(state,prams.dt);
 
@@ -218,9 +232,31 @@ set(gca,'fontsize',15)
 xlabel('meters','fontsize',16)
 ylabel('meters','fontsize',16)
 yticks([0 50 100 150 200])
+Fname = sprintf('%s_FAT',filename);
+saveas(2,Fname,'png')
 
 if saveVideo
     frame = getframe(gcf);
     writeVideo(v,frame);
     close(v)
 end
+
+%%save data
+
+N_state = size(state,3);
+burnMap = NaN*ones(prams.N,prams.N,N_state);
+fuelMap = NaN*ones(prams.N,prams.N,N_state);
+
+for i = 1:N_state
+    burning = NaN*ones(prams.N,prams.N);
+    fuel = zeros(prams.N,prams.N);
+    burning(state(:,:,i) == 2) = 1;
+    fuel(state(:,:,i) == 2) = 1; %burning=with fuel
+    fuel(state(:,:,i) == 1) = 1;
+    burnMap(:,:,i) = burning;
+    fuelMap(:,:,i) = fuel;
+end
+
+Name_data = sprintf('dataset_%s_Sec%g.mat',filename,prams.T);
+save(Name_data,'cx','cy','fat','prams','xstart','ystart','state',...
+    'fuelMap','burnMap');
