@@ -204,12 +204,13 @@ end % PoissonSolver
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function [velx,vely] = computeVelocity(o,psix,psiy,etax,etay,cos,sin)
+function [velx,vely] = computeVelocity(o,psix,psiy,etax,etay,...
+        cos_arg,sin_arg)
 
-rdbino = binornd(1,0.01,o.N,o.N);
+rdbino = binornd(1,0.2,o.N,o.N);
 % rdbino = zeros(o.N,o.N);
-velx = psix + etay + cos.*exprnd(o.s,o.N,o.N).*rdbino;
-vely = psiy - etax + o.s + sin.*exprnd(o.s,o.N,o.N).*rdbino;
+velx = psix + etay + cos_arg.*exprnd(1*o.s,o.N,o.N).*rdbino;
+vely = psiy - etax + o.s + sin_arg.*exprnd(1*o.s,o.N,o.N).*rdbino;
 % velx = psix + etay + exprnd(10*o.s,o.N,o.N);
 % vely = psiy - etax + o.s + exprnd(10*o.s,o.N,o.N); %v*arrival time 
 

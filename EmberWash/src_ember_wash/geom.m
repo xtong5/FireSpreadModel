@@ -277,6 +277,7 @@ axis([0 cells.dx*cells.N*cells.L 0 cells.dx*cells.N*cells.L])
 set(gca,'fontsize',15)
 xlabel('meters','fontsize',16)
 ylabel('meters','fontsize',16)
+xticks([0 50 100 150 200])
 yticks([0 50 100 150 200])
 if subplots
   subplot(1,2,2)

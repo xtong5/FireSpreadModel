@@ -3,10 +3,11 @@ clear
 addpath src_ember_wash
 
 usePlot = true;
-saveVideo = true;
+saveVideo = false;
 
-filename = 'ember_wash_withVort_MoreStream';
+filename = 'ember_wash_withVort_Bryan_Version';
 Vname = sprintf('test_%s',filename);
+
 
 if saveVideo
     v = VideoWriter(Vname,'MPEG-4');
@@ -112,9 +113,9 @@ sinkForce = os.sinkTerm(cells);
 vortForce = os.vortTerm(cells);
 [psi,psix,psiy] = os.PoissonSolverNeumann(sinkForce); 
 [psi,etax,etay] = os.PoissonSolverNeumann(+vortForce);
-cos = zeros(prams.N,prams.N); sin = cos;
+cos_arg = zeros(prams.N,prams.N); sin_arg = cos_arg;
 [cells.velx,cells.vely] = os.computeVelocity(...
-        psix,psiy,etax,etay,cos,sin);
+        psix,psiy,etax,etay,cos_arg,sin_arg);
 state(:,:,i) = cells.state;
 velx(:,:,i) = cells.velx;
 vely(:,:,i) = cells.vely;
@@ -143,9 +144,10 @@ while time < prams.T
 
   % add the different terms in the velocity
   hypo = (velx(:,:,i-1).^2+vely(:,:,i-1).^2).^(0.5);
-  cos = velx(:,:,i-1)./hypo; sin = vely(:,:,i-1)./hypo; 
+  cos_arg = velx(:,:,i-1)./hypo; sin_arg = vely(:,:,i-1)./hypo; 
+%  cos_arg = 0*cos_arg; sin_arg = 0*sin_arg;
   [cells.velx,cells.vely] = os.computeVelocity(...
-        psix,psiy,etax,etay,cos,sin);
+        psix,psiy,etax,etay,cos_arg,sin_arg);
 
   state(:,:,i) = cells.state;
   velx(:,:,i) = cells.velx;
@@ -195,7 +197,8 @@ for k = 1:prams.ntime+1
  cells.velx = velx(:,:,k);
  cells.vely = vely(:,:,k);
  time = (k-1)*prams.dt;
- cells.vis(time);
+% cells.vis(time);
+ cells.vis(time,1,streams,xstart,ystart);
  pause(0.01)
 end
 
@@ -231,6 +234,7 @@ axis([0 cells.dx*cells.N*cells.L 0 cells.dx*cells.N*cells.L])
 set(gca,'fontsize',15)
 xlabel('meters','fontsize',16)
 ylabel('meters','fontsize',16)
+xticks([0 50 100 150 200])
 yticks([0 50 100 150 200])
 Fname = sprintf('%s_FAT',filename);
 saveas(2,Fname,'png')
@@ -259,4 +263,4 @@ end
 
 Name_data = sprintf('dataset_%s_Sec%g.mat',filename,prams.T);
 save(Name_data,'cx','cy','fat','prams','xstart','ystart','state',...
-    'fuelMap','burnMap');
+    'velx','vely','fuelMap','burnMap');
