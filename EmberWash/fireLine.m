@@ -4,8 +4,11 @@ addpath src_ember_wash
 
 usePlot = true;
 saveVideo = false;
+SaveData = 1;
 
-filename = 'ember_wash_withVort_Bryan_Version';
+% filename = 'ember_wash_withVort_Bryan_Version';
+filename = 'ember_wash_withVort_MoreStream1';
+
 Vname = sprintf('test_%s',filename);
 
 
@@ -261,6 +264,8 @@ for i = 1:N_state
     fuelMap(:,:,i) = fuel;
 end
 
-Name_data = sprintf('dataset_%s_Sec%g.mat',filename,prams.T);
-save(Name_data,'cx','cy','fat','prams','xstart','ystart','state',...
+if SaveData == 1
+    Name_data = sprintf('dataset_%s_Sec%g.mat',filename,prams.T);
+    save(Name_data,'cx','cy','fat','prams','xstart','ystart','state',...
     'velx','vely','fuelMap','burnMap');
+end

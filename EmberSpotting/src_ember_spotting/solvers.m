@@ -243,7 +243,7 @@ for k = 1:numel(FireIndx)
 
   % Add Ember spots
 %   rddist = 0;
-  rddist = normrnd(20,5,1)*binornd(1,0.01,1);
+  rddist = o.s*normrnd(20,5,1)*binornd(1,0.01,1);
   if rddist ~= 0
     indx = [indx; idx];
     indy = [indy; idy + round(rddist)]; %ember spotting

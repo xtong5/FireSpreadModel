@@ -3,7 +3,8 @@ clear
 addpath src_ember_spotting
 
 usePlot = true;
-saveVideo = true;
+saveVideo = false;
+SaveData = 0;
 
 filename = 'ember_spotting_NoVort_MoreStream';
 Vname = sprintf('test_%s',filename);
@@ -242,6 +243,8 @@ for i = 1:N_state
     fuelMap(:,:,i) = fuel;
 end
 
-Name_data = sprintf('dataset_%s_Sec%g.mat',filename,prams.T);
-save(Name_data,'cx','cy','fat','prams','xstart','ystart','state',...
-    'fuelMap','burnMap');
+if SaveData == 1
+    Name_data = sprintf('dataset_%s_Sec%g.mat',filename,prams.T);
+    save(Name_data,'cx','cy','fat','prams','xstart','ystart','state',...
+    'velx','vely','fuelMap','burnMap');
+end
