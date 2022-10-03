@@ -1,0 +1,12 @@
+# Media files
+*.jpeg
+*.png
+*.avi
+*.mp4
+
+# MATLAB files
+*.asv
+
+# macOS files
+.DS_Store
+
