@@ -13,8 +13,12 @@ sinkStrength
 vortStrength
 probIgnite
 L
+nullVec
 spotting
 emberWash
+strucLeft
+strucBot
+strucSize
 
 end % properties
 
@@ -32,9 +36,20 @@ o.s = prams.s;
 o.sinkStrength = prams.sinkStrength;
 o.vortStrength = prams.vortStrength;
 o.probIgnite = prams.probIgnite;
-o.L = o.PoissonSolverNeumannMatrix;
 o.spotting = prams.spotting;
 o.emberWash = prams.emberWash;
+
+if isfield(prams,'strucLeft')
+  o.strucLeft = prams.strucLeft;
+  o.strucBot = prams.strucBot;
+  o.strucSize = prams.strucSize;
+else
+  o.strucLeft = [];
+  o.strucBot =  [];
+  o.strucSize = [];
+end
+
+[o.L,o.nullVec] = o.PoissonSolverNeumannMatrix;
 
 end % solvers: constructor
 
@@ -72,7 +87,7 @@ end
 end % vortTerm
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function L = PoissonSolverNeumannMatrix(o)
+function [L,nullVec] = PoissonSolverNeumannMatrix(o)
 % Compupte the matrix for 2D Poisson equation with Neumann boundary
 % conditions
 
@@ -121,6 +136,95 @@ for k = 2:N-1
   L(irow:irow+N-1,icol:icol+N-1) = D/o.dx^2;
 end
 
+[cy,cx] = meshgrid(1:o.N,1:o.N);
+
+eta = 1; % penalty parameter
+% modifications to L due to the obstacles
+indLeft = o.strucLeft;
+indBot = o.strucBot;
+len = o.strucSize;
+dx = o.dx;
+for j = 1:numel(indLeft)
+  % normal derivative at lower left corner
+  ind1 = sub2ind([N,N],indLeft(j),indBot(j));
+  ind2 = sub2ind([N,N],indLeft(j),indBot(j)-1);
+  L(ind1,:) = 0;
+  L(ind1,ind1) = 0*L(ind1,ind1) - eta*1/dx;
+  L(ind1,ind2) = 0*L(ind1,ind2) + eta*1/dx;
+
+  % normal derivative at upper left corner
+  ind1 = sub2ind([N,N],indLeft(j),indBot(j)+len);
+  ind2 = sub2ind([N,N],indLeft(j),indBot(j)+len+1);
+  L(ind1,:) = 0;
+  L(ind1,ind1) = 0*L(ind1,ind1) - eta*1/dx;
+  L(ind1,ind2) = 0*L(ind1,ind2) + eta*1/dx;
+
+  % normal derivative at lower right corner
+  ind1 = sub2ind([N,N],indLeft(j)+len,indBot(j));
+  ind2 = sub2ind([N,N],indLeft(j)+len,indBot(j)-1);
+  L(ind1,:) = 0;
+  L(ind1,ind1) = 0*L(ind1,ind1) - eta*1/dx;
+  L(ind1,ind2) = 0*L(ind1,ind2) + eta*1/dx;
+
+  % normal derivative at upper right corner
+  ind1 = sub2ind([N,N],indLeft(j)+len,indBot(j)+len);
+  ind2 = sub2ind([N,N],indLeft(j)+len,indBot(j)+len+1);
+  L(ind1,:) = 0;
+  L(ind1,ind1) = 0*L(ind1,ind1) - eta*1/dx;
+  L(ind1,ind2) = 0*L(ind1,ind2) + eta*1/dx;
+
+  % start of imposing Neumann boundary condition along the sides
+  % (non-corners)
+  for k = indLeft(j)+1:indLeft(j) + len - 1
+    % update indices for normal derivative along bottom side
+    ind1 = sub2ind([N,N],k,indBot(j));
+    ind2 = sub2ind([N,N],k,indBot(j)-1);
+    L(ind1,:) = 0;
+    L(ind1,ind1) = 0*L(ind1,ind1) - eta*1/dx;
+    L(ind1,ind2) = 0*L(ind1,ind2) + eta*1/dx;
+
+    % update indices for normal derivative along top side
+    ind1 = sub2ind([N,N],k,indBot(j)+len);
+    ind2 = sub2ind([N,N],k,indBot(j)+len+1);
+    L(ind1,:) = 0;
+    L(ind1,ind1) = 0*L(ind1,ind1) - eta*1/dx;
+    L(ind1,ind2) = 0*L(ind1,ind2) + eta*1/dx;
+  end
+
+  for k = indBot(j)+1:indBot(j) + len - 1
+    % update indices for normal derivative along left side
+    ind1 = sub2ind([N,N],indLeft(j),k);
+    ind2 = sub2ind([N,N],indLeft(j)-1,k);
+    L(ind1,:) = 0;
+    L(ind1,ind1) = 0*L(ind1,ind1) - eta*1/dx;
+    L(ind1,ind2) = 0*L(ind1,ind2) + eta*1/dx;
+
+    % update indices for normal derivative along right side
+    ind1 = sub2ind([N,N],indLeft(j)+len,k);
+    ind2 = sub2ind([N,N],indLeft(j)+len+1,k);
+    L(ind1,:) = 0;
+    L(ind1,ind1) = 0*L(ind1,ind1) - eta*1/dx;
+    L(ind1,ind2) = 0*L(ind1,ind2) + eta*1/dx;
+  end
+end
+
+% find the vector that is in the null space which we need to be able to
+% compute the appropriate amount of flux out of the boundary
+%tic
+[u,s,v] = svds(L',1,'smallest');
+%toc
+%tic
+%[V,D] = eig(full(L'));
+%toc
+%[~,ind] = min(abs(diag(D)));
+%nullVec = V(:,ind);
+nullVec = v;
+%norm(nullVec2 - nullVec)
+%norm(L'*nullVec)
+%norm(L'*nullVec2)
+%pause
+
+
 end % PoissonSolverNeumannMatrix
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -139,30 +243,108 @@ f = f(2:end-1,2:end-1);
 % choose the boundary data so that the compatability condition is
 % satisfied. Checked with Fredholm Alternative and this worked exactly
 % as we need (see lines below)
-bdFlux = +o.dx/(4*(N-2)) * sum(f(:));
+%bdFlux = +o.dx/(4*(N-2)) * sum(f(:));
 
 rhs = zeros(N^2,1);
+M = size(f,1);
+for k = 1:M
+  rhs(N+(k-1)*N+2:N+(k-1)*N+M+1) = f(:,k);
+end
+
+indLeft = o.strucLeft;
+indBot = o.strucBot;
+len = o.strucSize;
+[cy,cx] = meshgrid(1:o.N,1:o.N);
+
+for j = 1:numel(indLeft)
+  % normal derivative at lower left corner
+  ind = sub2ind([N,N],indLeft(j),indBot(j));
+  rhs(ind) = +o.s*cos(o.windDir);
+
+  % normal derivative at upper left corner
+  ind = sub2ind([N,N],indLeft(j),indBot(j)+len);
+  rhs(ind) = -o.s*cos(o.windDir);
+
+  % normal derivative at lower right corner
+  ind = sub2ind([N,N],indLeft(j)+len,indBot(j));
+  rhs(ind) = +o.s*cos(o.windDir);
+
+  % normal derivative at upper right corner
+  ind = sub2ind([N,N],indLeft(j)+len,indBot(j)+len);
+  rhs(ind) = -o.s*cos(o.windDir);
+
+  % start of imposing Neumann boundary condition along the sides
+  % (non-corners)
+  for k = indLeft(j)+1:indLeft(j) + len - 1
+    % update indices for normal derivative along bottom side
+    ind = sub2ind([N,N],k,indBot(j));
+    rhs(ind) = +o.s*cos(o.windDir);
+
+    % update indices for normal derivative along top side
+    ind = sub2ind([N,N],k,indBot(j)+len);
+    rhs(ind) = -o.s*cos(o.windDir);
+  end
+
+  for k = indBot(j)+1:indBot(j) + len - 1
+    % update indices for normal derivative along left side
+    ind = sub2ind([N,N],indLeft(j),k);
+    rhs(ind) = -o.s*sin(o.windDir);
+
+    % update indices for normal derivative along right side
+    ind = sub2ind([N,N],indLeft(j)+len,k);
+    rhs(ind) = -o.s*sin(o.windDir);
+  end
+end
+
+
+%[V,D] = eig(full(o.L)');
+%[~,ind] = min(abs(diag(D)));
+%
+% geometric way of computing boundary flux, but not sure what to put in
+% the case of obstacles
+%bdFlux = sum(rhs)/(4*(o.N-2));
+
+% linear algebraic way of computing boundary flux, but not sure how to
+% come up with this number physically in the case of obstacles
+%bdFlux = sum(rhs.*V(:,ind))/...
+%    (sum(V(1:N,ind)) + sum(V(N^2-N+1:N^2,ind)) + ...
+%    sum(V(N+1:N:N^2-2*N+1,ind)) + sum(V(2*N:N:N^2-N,ind)));
+bdFlux = sum(rhs.*o.nullVec)/...
+    (sum(o.nullVec(1:N)) + ...
+     sum(o.nullVec(N^2-N+1:N^2)) + ...
+     sum(o.nullVec(N+1:N:N^2-2*N+1)) + ...
+     sum(o.nullVec(2*N:N:N^2-N)));
+
+
 % put constant flux at all points on the four sides of the boundary
 rhs(1:N) = -bdFlux;
 rhs(N^2-N+1:N^2) = -bdFlux;
 rhs(N+1:N:N^2-2*N+1) = -bdFlux;
 rhs(2*N:N:N^2-N) = -bdFlux;
-M = size(f,1);
-for k = 1:M
-  rhs(N+(k-1)*N+2:N+(k-1)*N+M+1) = f(:,k);
-end
+
+%sum(rhs.*V(:,ind))
+%norm(o.L*(o.L\rhs) - rhs,inf)
+%disp('here')
+%pause
+
 % solve for the potential
 psi = o.L\rhs;
 
 % reshape the potential so that it agrees with the mesh grid
 psi = reshape(psi,N,N);
 
-% Use centered differencing to compute the gradient of the potential
-% (ie. the velocity)
-psi_x(2:end-1,2:end-1) = 0.5*(psi(3:end,2:end-1) - ...
-      psi(1:end-2,2:end-1))/o.dx;
-psi_y(2:end-1,2:end-1) = 0.5*(psi(2:end-1,3:end) - ...
-      psi(2:end-1,1:end-2))/o.dx;
+%% Use centered differencing to compute the gradient of the potential
+%% (ie. the velocity)
+%psi_x(2:end-1,2:end-1) = 0.5*(psi(3:end,2:end-1) - ...
+%      psi(1:end-2,2:end-1))/o.dx;
+%psi_y(2:end-1,2:end-1) = 0.5*(psi(2:end-1,3:end) - ...
+%      psi(2:end-1,1:end-2))/o.dx;
+
+[psi_y,psi_x] = gradient(psi);
+
+%[cx(10:20,30) cy(10:20,30) psi(10:20,30) psi(10:20,30)-psi(10:20,29)]
+%[cx(10:20,30) cy(10:20,30) psi(10:20,40) psi(10:20,41)-psi(10:20,40)]
+%pause
 
 % boundary conditions
 psi_x(1,:) = -bdFlux;
@@ -197,7 +379,7 @@ psi_x(2:end-1,2:end-1) = 0.5*(psi(3:end,2:end-1) - ...
 psi_y(2:end-1,2:end-1) = 0.5*(psi(2:end-1,3:end) - ...
       psi(2:end-1,1:end-2))/o.dx;
 
-end % PoissonSolver
+end % PoissonSolverDirichlet
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -205,6 +387,23 @@ function [velx,vely] = computeVelocity(o,psix,psiy,etax,etay)
 
 velx = psix + etay + o.s*sin(o.windDir);  
 vely = psiy - etax + o.s*cos(o.windDir); 
+
+indLeft = o.strucLeft;
+indBot = o.strucBot;
+len = o.strucSize;
+
+[cy,cx] = meshgrid(1:o.N,1:o.N);
+%[cx(10:20,30) cy(10:20,30) psiy(10:20,31)]
+
+
+% zero out interior points
+for j = 1:numel(indLeft)
+  velx(indLeft(j):indLeft(j)+len,indBot(j):indBot(j)+len) = 0;
+  vely(indLeft(j):indLeft(j)+len,indBot(j):indBot(j)+len) = 0;
+end
+%clf
+%quiver(cx,cy,velx,vely)
+%pause
 
 if o.emberWash
   % norm of the velocity

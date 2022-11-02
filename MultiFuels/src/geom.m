@@ -14,10 +14,15 @@ dx       % dimensionless width of a single cell
 % state = 2 => Cell is currently on fire
 state    % state of the burning cell
 burnTime % amount of time cell has been burning
-flameOut % amount of time before cell burnsout
+flameOut % amount of time before cell burns out
 
 velx    % dimensionless x component of wind
 vely    % dimensionless y component of wind
+
+strucLeft
+strucBot
+strucSize
+
 
 end % properties
 
@@ -40,6 +45,16 @@ o.dx = prams.dx;
 o.velx = zeros(o.N);
 o.vely = zeros(o.N);
 
+if isfield(prams,'strucLeft')
+  o.strucLeft = prams.strucLeft;
+  o.strucBot = prams.strucBot;
+  o.strucSize = prams.strucSize;
+else
+  o.strucLeft = [];
+  o.strucBot =  [];
+  o.strucSize = [];
+end
+
 end % geom: constructor
 
 
@@ -50,6 +65,8 @@ function initialState(o,IC,flameOutTime)
 % head fire at the southern side of plot
 if strcmp(IC,'head')
   HalfWidth = floor(o.N/6);
+%  HalfWidth = floor(o.N/12);
+%  HalfWidth = floor(o.N/3);
   o.state(ceil(o.N/2)-HalfWidth:ceil(o.N/2)+HalfWidth,ceil(o.N/6)) = 2;
 % backing fire at the northern end of the plot
 elseif strcmp(IC,'back')
@@ -191,7 +208,7 @@ elseif strcmp(IC,'user');
   if (flameOutTime - flameOutTime(1,1) < 1e-15)
     colormap([[0.7539 0.6016 0.4180]])
   else
-    colormap([[0.7539 0.6016 0.4180],[0 0.5 0]])
+    colormap([[0.7539 0.6016 0.4180];[0 0.5 0]])
   end
   axis([0 o.dx*o.N*o.L 0 o.dx*o.N*o.L])
   xticks(linspace(0,o.N-1,9))
@@ -303,7 +320,12 @@ end % bhamLine
 function vis(cells,time,k,streams,xstart,ystart,flameOutTime) 
 % plot
 
-subplots = true;
+
+indLeft = cells.strucLeft;
+indBot = cells.strucBot;
+len = cells.strucSize;
+
+subplots = false;
 
 if nargin == 2
   k = 1;
@@ -325,7 +347,11 @@ surface(cells.dx*(cells.cx-0.5)*cells.L,...
       cells.dx*(cells.cy-0.5)*cells.L,indicator);
 view(2);
 shading flat;
-colormap(ax1,[[0 0 0];[1 0 0];[0.6 1 0.6]])
+if subplots
+  colormap(ax1,[[0 0 0];[1 0 0];[0.6 1 0.6]])
+else
+  colormap([[0 0 0];[1 0 0];[0.6 1 0.6]])
+end
 axis equal
 axis([0 cells.dx*cells.N*cells.L 0 cells.dx*cells.N*cells.L])
 set(gca,'fontsize',15)
@@ -333,6 +359,15 @@ xlabel('meters','fontsize',16)
 ylabel('meters','fontsize',16)
 xticks(linspace(0,cells.N-1,9))
 yticks(linspace(0,cells.N-1,9))
+
+for j = 1:numel(indLeft)
+  h = fill3([indLeft(j) indLeft(j)+len indLeft(j)+len indLeft(j)]*cells.dx,...
+    [indBot(j) indBot(j) indBot(j)+len indBot(j)+len]*cells.dx,...
+    [10 10 10 10],'k');
+  set(h,'FaceColor',[146 36 40]/256)
+  set(h,'EdgeColor',[146 36 40]/256)
+end
+
 
 % include the streamlines
 if streams
@@ -351,7 +386,13 @@ if streams
   end
   set(h,'LineWidth',0.2)
 end
-
+%clf;
+%quiver(cells.cx,cells.cy,cells.velx,cells.vely)
+%%surf(cells.cx,cells.cy,log10(cells.velx.^2 + cells.vely.^2))
+%%view(2)
+%%shading interp;
+%%colorbar
+%pause
 
 % plotting of the fuel map
 if subplots
@@ -362,7 +403,7 @@ if subplots
   if (flameOutTime - flameOutTime(1,1) < 1e-15)
     colormap([[0.7539 0.6016 0.4180]])
   else
-    colormap([[0.7539 0.6016 0.4180],[0 0.5 0]])
+    colormap(ax2,[[0.7539 0.6016 0.4180];[0 0.5 0]])
   end
   axis([0 cells.dx*cells.N*cells.L 0 cells.dx*cells.N*cells.L])
   xticks(linspace(0,cells.N-1,9))
@@ -371,6 +412,7 @@ if subplots
   xlabel('meters','fontsize',16)
   ylabel('meters','fontsize',16)
 end
+pause(.01)
 
 
 end % vis

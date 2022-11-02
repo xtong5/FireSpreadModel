@@ -3,10 +3,10 @@ clear
 addpath ../src
 
 usePlot = true;
-savePlot = true;
-saveFrames = true;
-saveData = true;
-saveMovie = true;
+savePlot = false;
+saveFrames = false;
+saveData = false;
+saveMovie = false;
 if saveMovie
   writerObj = VideoWriter('test','MPEG-4');
   open(writerObj);
@@ -24,15 +24,15 @@ prams.L = 1;
 prams.N = 201; 
 prams.dx = 1; % dimensionless size of a cell
 
-prams.uwind = 2.0; % dimensionless speed of wind from the south
+prams.uwind = 4; % dimensionless speed of wind from the south
 prams.windDir = 0; % wind direction relative to north in degrees
 prams.s = prams.uwind/4; 
 % dimensionless speed of the fire spread rate due only to wind
 
 % 2x uwind produces lateral spread effects strength of omega in Sharples
 % paper = 0.3 (scaling?)
-%prams.vortStrength = 0;
- prams.vortStrength = 0.5*prams.uwind/prams.dx^2; % strength of the vorticity
+prams.vortStrength = 0;
+% prams.vortStrength = 0.5*prams.uwind/prams.dx^2; % strength of the vorticity
 %prams.vortStrength = -2*prams.s/prams.dx^2; % strength of the vorticity
 
 % 0.9 base runs %4. %4. %0.3; 1x uwind has large effect. Adding 1 causes
@@ -51,10 +51,10 @@ if prams.s ~= 0
 else
   prams.dt = 2.0;
 end
-prams.T = 300; % time horizon
+prams.T = 500; % time horizon
 prams.ntime = ceil(prams.T/prams.dt);
 
-prams.spotting = true;
+prams.spotting = false;
 prams.emberWash = false;
 
 
@@ -103,6 +103,20 @@ prams.flameOut = ceil(flameOutTime/prams.dt);
 % just before a cell burns out
 prams.probIgnite = 4e-1;  
 
+
+% left bottom corners of the structures
+prams.strucLeft = [75 90 105 75 105];
+prams.strucBot = [100 100 100 85 85];
+%prams.strucLeft = [75 100 150];
+%prams.strucBot = [75 80 100];
+%prams.strucLeft = [20];
+%prams.strucBot = [30];
+%prams.strucLeft = [];
+%prams.strucBot = [];
+% size of structures in meters
+prams.strucSize = 13;
+
+
 % create object to store information (state, burn time, flame out,
 % velocity) of each cell
 cells = geom(prams);
@@ -138,8 +152,11 @@ xstartLeft = 6*ones(size(ystartLeft));
 ystartRight = linspace(6,prams.N-5,50);
 xstartRight = (prams.N-5)*ones(size(ystartRight));
 
-xstart = [xstartBot xstartLeft xstartRight];
-ystart = [ystartBot ystartLeft ystartRight];
+xstartTop = linspace(6,prams.N-5,50);
+ystartTop = (prams.N-5)*ones(size(xstartBot));
+
+xstart = [xstartBot xstartLeft xstartRight xstartTop];
+ystart = [ystartBot ystartLeft ystartRight ystartTop];
 %xstart = [xstartBot xstartLeft];
 %ystart = [ystartBot ystartLeft];
 
@@ -159,7 +176,9 @@ while time < prams.T
 %  pause
 
   % compute velocity due to vorticity
-  [psi,etax,etay] = os.PoissonSolverNeumann(+vortForce);
+%  [psi,etax,etay] = os.PoissonSolverNeumann(+vortForce);
+  etax = zeros(prams.N);
+  etay = zeros(prams.N);
 
   % add the different terms in the velocity
   [cells.velx,cells.vely] = os.computeVelocity(...
