@@ -1,11 +1,1 @@
-These commands were used with varying degrees of success to encode videos. Sometimes they work and other times not, but usually at least one method will work.
-
-Replace (even number) with the width? height? of the frame. Also try swapping around the : if that doesn't work.
-ffmpeg -i frame_fireLine_%03d.png -vf scale=(even number):-2 fire.mp4
-
-Let a GUI tool (HandBrake) do the hard work
-ffmpeg -i frame_fireLine_%03d.png -c:v png fire.avi
-then encode using handbrake
-
-Use this if 4 digit number
-ffmpeg -i frame_fireLine_%04d.png -vf scale=(even number):-2 fire.mp4
+ffmpeg -i frame_fireLine_%04d.png -vf scale=(wdith, must be even number):-2 fire.mp4

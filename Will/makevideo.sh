@@ -27,7 +27,7 @@ height=`echo $dim | grep -o "[0-9]*" | tail -n 1`
 
 for dir in $dirs; do
   cd $dir
-  ffmpeg -i frame_fireLine_%04d.png -vf scale=$width:-2 fire.mp4
+  ffmpeg -framerate 10 -i frame_fireLine_%04d.png -vf scale=$width:-2 fire.mp4
   cd ..
 done
 
@@ -39,5 +39,5 @@ fi
 
 python3 "4x4 vid.py" $width $height
 cd frames
-ffmpeg -i fire4x4_%04d.png -vf scale=$(( $width*2 )):-2 fire4x4.mp4
+ffmpeg -framerate 10 -i fire4x4_%04d.png -vf scale=$(( $width*2 )):-2 fire4x4.mp4
 cd ..

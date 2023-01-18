@@ -1,0 +1,1 @@
+Implements effects of topography by modifying the inputs to the Bresenham line to "bias" it in the upslope direction.
